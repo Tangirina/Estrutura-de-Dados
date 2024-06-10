@@ -1,98 +1,147 @@
+#include "cidades.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include "cidades.h"
 
-Estrada *getEstrada(const char *cidades)
-{
-    FILE *file = fopen(cidades, "r");
-    if (!file)
-    {
-        fprintf(stderr, "Erro ao abrir o arquivo %s\n", cidades);
+int compararCidades(const void *a, const void *b) {
+    return ((Cidade *)a)->Posicao - ((Cidade *)b)->Posicao;
+}
+
+Estrada *getEstrada(const char *nomeArquivo) {
+    FILE *file = fopen(nomeArquivo, "r");
+    if (!file) {
+        perror("Erro ao abrir arquivo");
         return NULL;
     }
 
     Estrada *estrada = (Estrada *)malloc(sizeof(Estrada));
+    if (!estrada) {
+        perror("Erro de alocacao de memoria");
+        fclose(file);
+        return NULL;
+    }
+
     fscanf(file, "%d", &estrada->T);
     fscanf(file, "%d", &estrada->N);
 
+    if (estrada->T < 3 || estrada->T > 1000000 || estrada->N < 2 || estrada->N > 10000) {
+        fclose(file);
+        free(estrada);
+        return NULL;
+    }
+
     estrada->C = (Cidade *)malloc(estrada->N * sizeof(Cidade));
-    for (int i = 0; i < estrada->N; i++)
-    {
-        fscanf(file, "%d %[^\n]", &estrada->C[i].Posicao, estrada->C[i].Nome);
+    if (!estrada->C) {
+        perror("Erro de alocacao de memoria");
+        fclose(file);
+        free(estrada);
+        return NULL;
+    }
+
+    for (int i = 0; i < estrada->N; i++) {
+        if (fscanf(file, "%d ", &estrada->C[i].Posicao) != 1) {
+            fprintf(stderr, "Erro ao ler posicao da cidade %d\n", i);
+            fclose(file);
+            free(estrada->C);
+            free(estrada);
+            return NULL;
+        }
+        fgets(estrada->C[i].Nome, 256, file);
+        estrada->C[i].Nome[strcspn(estrada->C[i].Nome, "\n")] = '\0'; 
+        if (estrada->C[i].Posicao <= 0 || estrada->C[i].Posicao >= estrada->T) {
+            fprintf(stderr, "Erro: posicao da cidade fora dos limites permitidos\n");
+            fclose(file);
+            free(estrada->C);
+            free(estrada);
+            return NULL;
+        }
+        for (int j = 0; j < i; j++) {
+            if (estrada->C[i].Posicao == estrada->C[j].Posicao) {
+                fprintf(stderr, "Erro: posicao da cidade duplicada\n");
+                fclose(file);
+                free(estrada->C);
+                free(estrada);
+                return NULL;
+            }
+        }
+        printf("Cidade %d - Posicao: %d, Nome: %s\n", i, estrada->C[i].Posicao, estrada->C[i].Nome);
     }
 
     fclose(file);
     return estrada;
 }
 
-double calcularVizinhanca(Estrada *estrada, int indiceCidade)
-{
-    double vizinhanca = 0;
-    int posicaoCidade = estrada->C[indiceCidade].Posicao;
-    double mediaPosicoes = 0;
-
-    for (int i = 0; i < estrada->N; i++)
-    {
-        mediaPosicoes += estrada->C[i].Posicao;
-    }
-    mediaPosicoes /= estrada->N;
-
-    vizinhanca += fabs(posicaoCidade - mediaPosicoes);
-
-    vizinhanca += fmin(posicaoCidade, estrada->T - posicaoCidade);
-
-    return vizinhanca;
-}
-
-double calcularMenorVizinhanca(const char *cidades)
-{
-    Estrada *estrada = getEstrada(cidades);
+double calcularMenorVizinhanca(const char *nomeArquivo) {
+    Estrada *estrada = getEstrada(nomeArquivo);
     if (!estrada)
-        return -1;
+        return -1.0; 
 
-    double menorVizinhanca = -1;
 
-    for (int i = 0; i < estrada->N; i++)
-    {
-        double vizinhanca = calcularVizinhanca(estrada, i);
+    qsort(estrada->C, estrada->N, sizeof(Cidade), compararCidades);
 
-        if (menorVizinhanca == -1 || vizinhanca < menorVizinhanca)
-        {
+    double menorVizinhanca = estrada->T; 
+
+    for (int i = 0; i < estrada->N; i++) {
+        double inicio = (i == 0) ? 0 : (estrada->C[i].Posicao + estrada->C[i-1].Posicao) / 2.0;
+        double fim = (i == estrada->N - 1) ? estrada->T : (estrada->C[i].Posicao + estrada->C[i+1].Posicao) / 2.0;
+        double vizinhanca = fim - inicio;
+
+        if (vizinhanca < menorVizinhanca)
             menorVizinhanca = vizinhanca;
-        }
     }
 
     free(estrada->C);
     free(estrada);
+
     return menorVizinhanca;
 }
 
-char *cidadeMenorVizinhanca(const char *cidades)
-{
-    Estrada *estrada = getEstrada(cidades);
+char *cidadeMenorVizinhanca(const char *nomeArquivo) {
+    Estrada *estrada = getEstrada(nomeArquivo);
     if (!estrada)
         return NULL;
 
-    double menorVizinhanca = -1;
-    char *cidade = NULL;
 
-    for (int i = 0; i < estrada->N; i++)
-    {
-        double vizinhanca = calcularVizinhanca(estrada, i);
+    qsort(estrada->C, estrada->N, sizeof(Cidade), compararCidades);
 
-        if (menorVizinhanca == -1 || vizinhanca < menorVizinhanca)
-        {
+    double menorVizinhanca = estrada->T; 
+    char *cidadeMenor = NULL;
+
+    for (int i = 0; i < estrada->N; i++) {
+        double inicio = (i == 0) ? 0 : (estrada->C[i].Posicao + estrada->C[i-1].Posicao) / 2.0;
+        double fim = (i == estrada->N - 1) ? estrada->T : (estrada->C[i].Posicao + estrada->C[i+1].Posicao) / 2.0;
+        double vizinhanca = fim - inicio;
+
+        if (vizinhanca < menorVizinhanca) {
             menorVizinhanca = vizinhanca;
-            cidade = estrada->C[i].Nome;
+
+            cidadeMenor = malloc(strlen(estrada->C[i].Nome) + 1);
+            if (!cidadeMenor) {
+                perror("Erro de alocação de memória");
+                free(estrada->C);
+                free(estrada);
+                return NULL;
+            }
+
+            strcpy(cidadeMenor, estrada->C[i].Nome);
         }
     }
 
-    char *resultado = (char *)malloc((strlen(cidade) + 1) * sizeof(char));
-    strcpy(resultado, cidade);
-
     free(estrada->C);
     free(estrada);
-    return resultado;
+
+    return cidadeMenor;
+}
+
+
+int main() {
+    const char *nomeArquivo = "teste01.txt";
+
+    double menorVizinhanca = calcularMenorVizinhanca(nomeArquivo);
+    char *cidadeMenor = cidadeMenorVizinhanca(nomeArquivo);
+
+    printf("Menor vizinhanca de estrada: %.2f\n", menorVizinhanca);
+    printf("Cidade com menor vizinhanca: %s\n", cidadeMenor);
+
+    return 0;
 }
