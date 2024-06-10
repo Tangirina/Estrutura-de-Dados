@@ -14,7 +14,7 @@ Cidade *C; // Vetor de cidades
 } 
 
 Estrada;
-Estrada *getEstrada(const char *Arquivo); // Inicializa cidades no TAD indicado acima.
-double calcularMenorVizinhanca(const char *Arquivo); // Retorna a menor vizinhança.
-char *cidadeMenorVizinhanca(const char *Arquivo); // Retorna a cidade que tem menor vizinhança.
+Estrada *getEstrada(const char *estradas); // Inicializa cidades no TAD indicado acima.
+double calcularMenorVizinhanca(const char *estradas); // Retorna a menor vizinhança.
+char *cidadeMenorVizinhanca(const char *estradas); // Retorna a cidade que tem menor vizinhança.
 #endif
