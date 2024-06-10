@@ -24,12 +24,6 @@ Estrada *getEstrada(const char *nomeArquivo) {
     fscanf(file, "%d", &estrada->T);
     fscanf(file, "%d", &estrada->N);
 
-    if (estrada->T < 3 || estrada->T > 1000000 || estrada->N < 2 || estrada->N > 10000) {
-        fclose(file);
-        free(estrada);
-        return NULL;
-    }
-
     estrada->C = (Cidade *)malloc(estrada->N * sizeof(Cidade));
     if (!estrada->C) {
         perror("Erro de alocacao de memoria");
@@ -48,13 +42,7 @@ Estrada *getEstrada(const char *nomeArquivo) {
         }
         fgets(estrada->C[i].Nome, 256, file);
         estrada->C[i].Nome[strcspn(estrada->C[i].Nome, "\n")] = '\0'; 
-        if (estrada->C[i].Posicao <= 0 || estrada->C[i].Posicao >= estrada->T) {
-            fprintf(stderr, "Erro: posicao da cidade fora dos limites permitidos\n");
-            fclose(file);
-            free(estrada->C);
-            free(estrada);
-            return NULL;
-        }
+
         for (int j = 0; j < i; j++) {
             if (estrada->C[i].Posicao == estrada->C[j].Posicao) {
                 fprintf(stderr, "Erro: posicao da cidade duplicada\n");
@@ -64,7 +52,6 @@ Estrada *getEstrada(const char *nomeArquivo) {
                 return NULL;
             }
         }
-        printf("Cidade %d - Posicao: %d, Nome: %s\n", i, estrada->C[i].Posicao, estrada->C[i].Nome);
     }
 
     fclose(file);
@@ -135,7 +122,7 @@ char *cidadeMenorVizinhanca(const char *nomeArquivo) {
 
 
 int main() {
-    const char *nomeArquivo = "teste01.txt";
+    const char *nomeArquivo = "estradas.txt";
 
     double menorVizinhanca = calcularMenorVizinhanca(nomeArquivo);
     char *cidadeMenor = cidadeMenorVizinhanca(nomeArquivo);
@@ -143,5 +130,5 @@ int main() {
     printf("Menor vizinhanca de estrada: %.2f\n", menorVizinhanca);
     printf("Cidade com menor vizinhanca: %s\n", cidadeMenor);
 
-    return 0;
+    return 0;
 }
